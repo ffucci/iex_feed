@@ -7,7 +7,6 @@ use pcap_parser::data::{get_packetdata, PacketData};
 use bytes::BytesMut;
 
 use bincode;
-
 use iex_feed::iexdata::*;
 
 fn main()
@@ -46,13 +45,31 @@ fn main()
                                     let x = hex::encode(curr); 
                                     let mut c = Cursor::new(curr);
                                     println!("{:?}",x);
+                                    let frame_header_length = 42;
+                                    let iex_message_header_length = 40;
+                                    let mut start = 0;
+                                    start += frame_header_length;
                                     if curr.len() >= 22
                                     {
-                                        println!("init byte = {:x}",&curr[42]);
-                                        c.seek(SeekFrom::Start(42));
-                                        let header_bytes = &curr[42..82];
+                                        println!("init byte = {:x}",&curr[start]);
+                                        let header_bytes = &curr[start..(start + iex_message_header_length)];
                                         let h : IEXHeader = bincode::deserialize(header_bytes).unwrap();
                                         println!("header = {:?}", h);
+                                        start += iex_message_header_length;
+                                        let mut cnt = h.message_count;
+                                        let mut total_byte_count = 0;
+                                        while cnt > 0
+                                        {
+                                            let message_data : IEXMessageData = bincode::deserialize(&curr[start..(start + 4)]).unwrap();
+                                            println!("message_data = {:?}", message_data);
+                                            start += 2;
+                                            start += message_data.length as usize;
+                                            cnt -= 1;
+                                            total_byte_count += 2 + message_data.length as usize;
+                                        }
+
+                                        println!("total count : {0}", total_byte_count);
+                                        assert_eq!(total_byte_count, h.payload_length as usize);
                                     }
  
                                 },

@@ -17,3 +17,11 @@ pub struct IEXHeader
     #[serde(with = "ts_nanoseconds")]
     pub send_time : DateTime<Utc>, 
 }
+
+#[derive(Deserialize, Debug)]
+pub struct IEXMessageData
+{
+    pub length : u16,
+    pub msg_type : u8,
+    pub msg_flags : u8,
+}
