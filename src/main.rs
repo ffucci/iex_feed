@@ -6,8 +6,9 @@ use byteorder::ReadBytesExt;
 use pcap_parser::data::{get_packetdata, PacketData};
 use bytes::BytesMut;
 
-use byteorder::NetworkEndian;
-use byteorder::LittleEndian;
+use bincode;
+
+use iex_feed::iexdata::*;
 
 fn main()
 {
@@ -44,26 +45,14 @@ fn main()
                                 PacketData::L2(curr) => { 
                                     let x = hex::encode(curr); 
                                     let mut c = Cursor::new(curr);
-                                    // println!("{:?}",x);
-                                    if curr.len() > 22
+                                    println!("{:?}",x);
+                                    if curr.len() >= 22
                                     {
-                                        println!("init byte = {:?}",&curr[23]);
-                                        c.seek(SeekFrom::Start(22));
-                                        let length = c.read_u16::<LittleEndian>().unwrap();
-                                        let msg_type = c.read_u8().unwrap();
-                                        let msg_flags = c.read_u8().unwrap();
-    
-                                        println!("l = {:02x}, type = {:01x}, flags ={:01x}", length,msg_type, msg_flags);
-                                        // let length2 = c.read_u16::<LittleEndian>().unwrap();
-                                        // println!("l = {:02x}", length2);
-    
-                                        // println!("{:02x}", &curr[42..44]);
-    
-                                        // let version = GetNumeric<uint8_t>(data_ptr, 0);
-                                        // let protocol_id = GetNumeric<uint16_t>(data_ptr, 2);
-                                        // channel_id = GetNumeric<uint32_t>(data_ptr, 4);
-                                        // session_id = GetNumeric<uint32_t>(data_ptr, 8);
-                                        // payload_len = GetNumeric<uint16_t>(data_ptr, 12);
+                                        println!("init byte = {:x}",&curr[42]);
+                                        c.seek(SeekFrom::Start(42));
+                                        let header_bytes = &curr[42..82];
+                                        let h : IEXHeader = bincode::deserialize(header_bytes).unwrap();
+                                        println!("header = {:?}", h);
                                     }
  
                                 },
