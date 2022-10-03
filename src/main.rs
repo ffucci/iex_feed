@@ -24,7 +24,7 @@ where
 
 fn main()
 {
-    let path = "./src/20180127_IEXTP1_TOPS1.6.pcap";
+    let path = "./test/20180127_IEXTP1_TOPS1.6.pcap";
     // let path = "/Users/coding/Downloads/data_feeds_20170912_20170912_IEXTP1_TOPS1.6.pcap";
     let file = File::open(path).unwrap();
     let mut num_blocks = 0;
