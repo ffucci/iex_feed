@@ -8,10 +8,12 @@ use bytes::BytesMut;
 
 use bincode;
 use iex_feed::iexdata::*;
+use std::str;
 
 fn main()
 {
     let path = "./src/20180127_IEXTP1_TOPS1.6.pcap";
+    // let path = "/Users/coding/Downloads/data_feeds_20170912_20170912_IEXTP1_TOPS1.6.pcap";
     let file = File::open(path).unwrap();
     let mut num_blocks = 0;
     let mut reader = PcapNGReader::new(65536, file).expect("PcapNGReader");
@@ -43,7 +45,6 @@ fn main()
                             {
                                 PacketData::L2(curr) => { 
                                     let x = hex::encode(curr); 
-                                    let mut c = Cursor::new(curr);
                                     println!("{:?}",x);
                                     let frame_header_length = 42;
                                     let iex_message_header_length = 40;
@@ -62,7 +63,42 @@ fn main()
                                         {
                                             let message_data : IEXMessageData = bincode::deserialize(&curr[start..(start + 4)]).unwrap();
                                             println!("message_data = {:?}", message_data);
+                                            // Remove the message length from the count
                                             start += 2;
+                                            match message_data.msg_type
+                                            {
+                                                IEXMessageType::QuoteUpdateMessage => 
+                                                {
+                                                    let total_size = message_data.length as usize;
+                                                    println!("total_size : {0}", total_size);
+                                                    let bytes_message = hex::encode(&curr[start..(start + total_size)]);
+                                                    println!("bytes message : {0}", bytes_message);
+                                                    let quote_message : QuoteUpdateMessage = bincode::deserialize(&curr[start..(start + total_size)]).unwrap();
+                                                    println!("quote message {:?}", quote_message);
+                                                    let z = str::from_utf8(&quote_message.symbol);
+                                                    println!("z = {0}", z.unwrap());
+                                                },
+                                                IEXMessageType::ShortSalePriceTestStatus => 
+                                                {
+                                                    let total_size = message_data.length as usize;
+                                                    println!("total_size : {0}", total_size);
+                                                    let bytes_message = hex::encode(&curr[start..(start + total_size)]);
+                                                    println!("bytes message : {0}", bytes_message);
+                                                    let short_sale : ShortSalePriceTestStatus = bincode::deserialize(&curr[start..(start + total_size)]).unwrap();
+                                                    println!("short sale message = {:?}", short_sale);
+                                                },
+                                                IEXMessageType::TradingStatusMessage => 
+                                                {
+                                                    let total_size = message_data.length as usize;
+                                                    println!("total_size : {0}", total_size);
+                                                    let bytes_message = hex::encode(&curr[start..(start + total_size)]);
+                                                    println!("bytes message : {0}", bytes_message);
+                                                    let trading_status : TradingStatusMessage = bincode::deserialize(&curr[start..(start + total_size)]).unwrap();
+                                                    println!("trading status message = {:?}", trading_status);
+                                                },
+                                                _ => println!("nothing to do!"),
+                                            }
+                                            
                                             start += message_data.length as usize;
                                             cnt -= 1;
                                             total_byte_count += 2 + message_data.length as usize;
@@ -107,12 +143,11 @@ fn main()
             },
             Err(PcapError::Eof) => break,
             Err(PcapError::Incomplete) => {
-                eprintln!("Could not read complete data block.");
-                eprintln!("Hint: the reader buffer size may be too small, or the input file nay be truncated.");
-                break;
+                reader.refill().unwrap();
             },
             Err(e) => panic!("error while reading: {:?}", e),
         }
+
     }
     println!("num_blocks: {}", num_blocks);
 }
