@@ -10,6 +10,18 @@ use bincode;
 use iex_feed::iexdata::*;
 use std::str;
 
+fn deserialize_data<'a, T>(curr: &'a [u8], start : usize, message_data : &IEXMessageData) -> T
+where
+    T: serde::de::Deserialize<'a>,
+{
+    let total_size = message_data.length as usize;
+    println!("total_size : {0}", total_size);
+    let bytes_message = hex::encode(&curr[start..(start + total_size)]);
+    println!("bytes message : {0}", bytes_message);
+    let message : T = bincode::deserialize(&curr[start..(start + total_size)]).unwrap();
+    return message;
+}
+
 fn main()
 {
     let path = "./src/20180127_IEXTP1_TOPS1.6.pcap";
@@ -69,32 +81,23 @@ fn main()
                                             {
                                                 IEXMessageType::QuoteUpdateMessage => 
                                                 {
-                                                    let total_size = message_data.length as usize;
-                                                    println!("total_size : {0}", total_size);
-                                                    let bytes_message = hex::encode(&curr[start..(start + total_size)]);
-                                                    println!("bytes message : {0}", bytes_message);
-                                                    let quote_message : QuoteUpdateMessage = bincode::deserialize(&curr[start..(start + total_size)]).unwrap();
-                                                    println!("quote message {:?}", quote_message);
-                                                    let z = str::from_utf8(&quote_message.symbol);
-                                                    println!("z = {0}", z.unwrap());
+                                                    let quote = deserialize_data::<QuoteUpdateMessage>(&curr, start, &message_data);
+                                                    println!("quote : {:?}", quote);
                                                 },
                                                 IEXMessageType::ShortSalePriceTestStatus => 
                                                 {
-                                                    let total_size = message_data.length as usize;
-                                                    println!("total_size : {0}", total_size);
-                                                    let bytes_message = hex::encode(&curr[start..(start + total_size)]);
-                                                    println!("bytes message : {0}", bytes_message);
-                                                    let short_sale : ShortSalePriceTestStatus = bincode::deserialize(&curr[start..(start + total_size)]).unwrap();
+                                                    let short_sale : ShortSalePriceTestStatus = deserialize_data::<ShortSalePriceTestStatus>(&curr, start, &message_data);
                                                     println!("short sale message = {:?}", short_sale);
                                                 },
                                                 IEXMessageType::TradingStatusMessage => 
                                                 {
-                                                    let total_size = message_data.length as usize;
-                                                    println!("total_size : {0}", total_size);
-                                                    let bytes_message = hex::encode(&curr[start..(start + total_size)]);
-                                                    println!("bytes message : {0}", bytes_message);
-                                                    let trading_status : TradingStatusMessage = bincode::deserialize(&curr[start..(start + total_size)]).unwrap();
+                                                    let trading_status : TradingStatusMessage = deserialize_data::<TradingStatusMessage>(&curr, start, &message_data);
                                                     println!("trading status message = {:?}", trading_status);
+                                                },
+                                                IEXMessageType::SecurityDirectoryMessage => 
+                                                {
+                                                    let security_dir : SecurityDirectoryMessage = deserialize_data::<SecurityDirectoryMessage>(&curr, start, &message_data);
+                                                    println!("security dir = {:?}", security_dir);
                                                 },
                                                 _ => println!("nothing to do!"),
                                             }
@@ -104,7 +107,7 @@ fn main()
                                             total_byte_count += 2 + message_data.length as usize;
                                         }
 
-                                        println!("total count : {0}", total_byte_count);
+                                        eprintln!("total count : {0}", total_byte_count);
                                         assert_eq!(total_byte_count, h.payload_length as usize);
                                     }
  

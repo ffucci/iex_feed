@@ -1,7 +1,10 @@
+// Included crates
 use chrono::{DateTime, Utc};
 use chrono::serde::ts_nanoseconds;
 use serde::{Serialize,Deserialize};
 use serde_repr::{Serialize_repr, Deserialize_repr};
+use std::fmt;
+use std::str;
 
 #[derive(Deserialize, Debug)]
 pub struct IEXHeader
@@ -82,7 +85,7 @@ pub struct ShortSalePriceTestStatus
     pub detail : u8,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct TradingStatusMessage
 {
     __t : u8,
@@ -91,4 +94,40 @@ pub struct TradingStatusMessage
     pub timestamp : DateTime<Utc>,
     pub symbol : [u8; 8],
     pub reason : [u8; 4],
+}
+
+impl fmt::Debug for TradingStatusMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let symbol = String::from_utf8(self.symbol.to_vec()).unwrap();
+        let reason = String::from_utf8(self.reason.to_vec()).unwrap_or("NONE".to_string());
+
+        f.debug_struct("TradingStatusMessage")
+         .field("trading_status", &self.trading_status)
+         .field("timestamp", &self.timestamp)
+         .field("symbol", &symbol.trim())
+         .field("reason", &reason.trim())
+         .finish()
+    }
+}
+
+#[derive(Debug,Deserialize)]
+pub struct SecurityDirectoryMessage
+{
+    __t : u8,
+    pub flags : u8,
+    #[serde(with = "ts_nanoseconds")]
+    pub timestamp : DateTime<Utc>,
+    pub symbol : [u8; 8],
+    pub round_lot_size : u32,
+    pub adjusted_poc_price : i64,
+    pub luld_tier : LULDTier,    
+}
+
+#[derive(Deserialize_repr,Debug, PartialEq)]
+#[repr(u8)]
+pub enum LULDTier
+{
+    NotApplicable = 0x0,
+    Tier1NMS = 0x1,
+    Tier2NMS = 0x2,
 }
