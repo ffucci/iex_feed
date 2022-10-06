@@ -1,21 +1,32 @@
 use pcap_parser::*;
 use pcap_parser::traits::PcapReaderIterator;
-use std::{fs::File, io::{Cursor, SeekFrom, Seek}, os::unix::process};
-use bytes::Bytes;
-use byteorder::ReadBytesExt;
-use pcap_parser::data::{get_packetdata, PacketData};
+use pcap_parser::data::{PacketData};
 use bytes::BytesMut;
 use iex_feed::packetprocessor::*;
-use bincode;
-use std::str;
+
 use std::env;
+use std::fs::File;
+
+use clap::{command, Arg, ArgAction};
 
 fn main()
 {
     env::set_var("RUST_BACKTRACE", "1");
-    let path = "./test/20180127_IEXTP1_TOPS1.6.pcap";
+    let matches = command!()// requires `cargo` feature
+        .version("0.1.0")
+        .author("Francesco Fucci")
+        .about("Can read IEX pcap feeds")
+        .arg(Arg::new("file")
+                 .short('f')
+                 .long("file")
+                 .action(ArgAction::Append)
+                 .help("PCAP file to be read")).get_matches();
+
+    let default_path = &"./test/20180127_IEXTP1_TOPS1.6.pcap".to_string();
+    let path = matches.get_one::<String>("file").unwrap_or(default_path);
+    println!("path : {0}", path);
     // let path = "/Users/coding/Downloads/data_feeds_20170912_20170912_IEXTP1_TOPS1.6.pcap";
-    let file = File::open(path).unwrap();
+    let file = File::open(default_path).unwrap();
     let mut num_blocks = 0;
     let mut reader = PcapNGReader::new(65536, file).expect("PcapNGReader");
     let mut if_linktypes = Vec::new();
