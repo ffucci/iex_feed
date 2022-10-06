@@ -8,9 +8,11 @@ use bytes::BytesMut;
 use iex_feed::packetprocessor::*;
 use bincode;
 use std::str;
+use std::env;
 
 fn main()
 {
+    env::set_var("RUST_BACKTRACE", "1");
     let path = "./test/20180127_IEXTP1_TOPS1.6.pcap";
     // let path = "/Users/coding/Downloads/data_feeds_20170912_20170912_IEXTP1_TOPS1.6.pcap";
     let file = File::open(path).unwrap();

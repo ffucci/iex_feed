@@ -42,8 +42,10 @@ impl PacketProcessor for IEXPacketProcessor {
                         let message_data: IEXMessageData =
                             bincode::deserialize(&curr[start..(start + 4)]).unwrap();
                         println!("message_data = {:?}", message_data);
+                        
                         // Remove the message length from the count
                         start += 2;
+                        
                         match message_data.msg_type {
                             IEXMessageType::QuoteUpdateMessage => {
                                 let quote = deserialize_data::<QuoteUpdateMessage>(
@@ -97,6 +99,15 @@ impl PacketProcessor for IEXPacketProcessor {
                                         &message_data,
                                     );
                                 println!("retail update  = {:?}", retail_indicator);
+                            }
+                            IEXMessageType::AuctionInformationMessage => {
+                                let auction_message: AuctionInformationMessage =
+                                    deserialize_data::<AuctionInformationMessage>(
+                                        &curr,
+                                        start,
+                                        &message_data,
+                                    );
+                                println!("auction message  = {:?}", auction_message);
                             }
                             _ => println!("nothing to do!"),
                         }

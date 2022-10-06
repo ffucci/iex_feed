@@ -1,10 +1,15 @@
+use chrono::NaiveDateTime;
 // Included crates
 use chrono::serde::ts_nanoseconds;
+use chrono::serde::ts_seconds;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::fmt;
 use std::str;
+
+const kMult: f64 = 1e-4;
 
 #[derive(Deserialize, Debug)]
 pub struct IEXHeader {
@@ -44,7 +49,10 @@ pub enum IEXMessageType {
     OfficialPriceMessage = 0x58,
     Nothing,
 }
-#[derive(Deserialize_repr, Debug, PartialEq)]
+
+
+// AUCTION MESSAGES
+#[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
 #[repr(u8)]
 pub enum AuctionType
 {
@@ -55,12 +63,64 @@ pub enum AuctionType
     VOLATILITY = 0x56,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize_repr, Serialize_repr ,Debug, PartialEq)]
+#[repr(u8)]
+pub enum ImbalanceSide
+{
+    BUY = 0x42,
+    SELL = 0x53,
+    NO = 0x4E,
+    UNKNOWN,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct AuctionInformationMessage
 {
     __t : u8,
     pub auction_type : AuctionType,
+    #[serde(with = "ts_nanoseconds")]
+    pub send_time: DateTime<Utc>,
+    pub symbol: [u8; 8],
+    pub paired_shares : u32,
+    pub reference_price : i64,
+    pub indicative_price : i64,
+    pub imbalance_shares : u32,
+    pub imbalance_side : ImbalanceSide,
+    pub extension_number : u8,
+    pub scheduled_auction_time: u32,
+    pub auction_book_clearing_price : i64,
+    pub collar_reference_price : i64,
+    pub lower_auction_collar : i64,
+    pub upper_auction_collar : i64,
 }
+
+impl fmt::Debug for AuctionInformationMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let symbol = String::from_utf8(self.symbol.to_vec()).unwrap_or("NONE".to_string());
+        // Create a NaiveDateTime from the timestamp
+        let naive = NaiveDateTime::from_timestamp(self.scheduled_auction_time as i64, 0);
+        // Create a normal DateTime from the NaiveDateTime
+        let naive_datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+
+        f.debug_struct("AuctionInformationMessage")
+            .field("send time", &self.send_time)
+            .field("symbol", &symbol.trim())
+            .field("paired shares", &self.paired_shares)
+            .field("reference price", &((self.reference_price as f64) * kMult))
+            .field("indicative price", &((self.indicative_price as f64) * kMult))
+            .field("imbalance shares", &self.imbalance_shares)
+            .field("imbalance side", &self.imbalance_side)
+            .field("extension_number", &self.extension_number)
+            .field("scheduled auction time", &self.scheduled_auction_time)
+            .field("auction book clearing price", &((self.auction_book_clearing_price as f64) * kMult))
+            .field("collar reference price", &((self.collar_reference_price as f64) * kMult))
+            .field("lower auction collar", &((self.lower_auction_collar as f64) * kMult))
+            .field("upper auction collar", &((self.upper_auction_collar as f64) * kMult))
+            .finish()
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Deserialize)]
 pub struct TradeReportMessage {
@@ -83,11 +143,13 @@ impl fmt::Debug for TradeReportMessage {
             .field("timestamp", &self.timestamp)
             .field("symbol", &symbol.trim())
             .field("size", &self.size)
-            .field("price", &((self.price as f64) * 1e-4))
+            .field("price", &((self.price as f64) * kMult))
             .field("trade id", &self.trade_id)
             .finish()
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Quote message update
 #[derive(Deserialize)]
