@@ -1,7 +1,6 @@
 use chrono::NaiveDateTime;
 // Included crates
 use chrono::serde::ts_nanoseconds;
-use chrono::serde::ts_seconds;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -9,12 +8,12 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::fmt;
 use std::str;
 
-const kMult: f64 = 1e-4;
+const K_MULT: f64 = 1e-4;
 
 #[derive(Deserialize, Debug)]
 pub struct IEXHeader {
     pub version: u8,
-    reserved: u8,
+    __reserved: u8,
     pub protocol_id: u16,
     pub channel_id: u32,
     pub session_id: u32,
@@ -106,16 +105,16 @@ impl fmt::Debug for AuctionInformationMessage {
             .field("send time", &self.send_time)
             .field("symbol", &symbol.trim())
             .field("paired shares", &self.paired_shares)
-            .field("reference price", &((self.reference_price as f64) * kMult))
-            .field("indicative price", &((self.indicative_price as f64) * kMult))
+            .field("reference price", &((self.reference_price as f64) * K_MULT))
+            .field("indicative price", &((self.indicative_price as f64) * K_MULT))
             .field("imbalance shares", &self.imbalance_shares)
             .field("imbalance side", &self.imbalance_side)
             .field("extension_number", &self.extension_number)
             .field("scheduled auction time", &self.scheduled_auction_time)
-            .field("auction book clearing price", &((self.auction_book_clearing_price as f64) * kMult))
-            .field("collar reference price", &((self.collar_reference_price as f64) * kMult))
-            .field("lower auction collar", &((self.lower_auction_collar as f64) * kMult))
-            .field("upper auction collar", &((self.upper_auction_collar as f64) * kMult))
+            .field("auction book clearing price", &((self.auction_book_clearing_price as f64) * K_MULT))
+            .field("collar reference price", &((self.collar_reference_price as f64) * K_MULT))
+            .field("lower auction collar", &((self.lower_auction_collar as f64) * K_MULT))
+            .field("upper auction collar", &((self.upper_auction_collar as f64) * K_MULT))
             .finish()
     }
 }
@@ -143,7 +142,7 @@ impl fmt::Debug for TradeReportMessage {
             .field("timestamp", &self.timestamp)
             .field("symbol", &symbol.trim())
             .field("size", &self.size)
-            .field("price", &((self.price as f64) * kMult))
+            .field("price", &((self.price as f64) * K_MULT))
             .field("trade id", &self.trade_id)
             .finish()
     }

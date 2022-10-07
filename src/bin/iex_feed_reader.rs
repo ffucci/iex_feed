@@ -13,7 +13,8 @@ const FRAME_HEADER_LENGTH : usize = 42;
 
 fn main()
 {
-    env::set_var("RUST_BACKTRACE", "1");
+    env::set_var("RUST_BACKTRA
+    CE", "1");
     let matches = command!()// requires `cargo` feature
         .version("0.1.0")
         .author("Francesco Fucci")
