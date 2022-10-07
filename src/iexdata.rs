@@ -110,7 +110,7 @@ impl fmt::Debug for AuctionInformationMessage {
             .field("imbalance shares", &self.imbalance_shares)
             .field("imbalance side", &self.imbalance_side)
             .field("extension_number", &self.extension_number)
-            .field("scheduled auction time", &self.scheduled_auction_time)
+            .field("scheduled auction time", &naive_datetime)
             .field("auction book clearing price", &((self.auction_book_clearing_price as f64) * K_MULT))
             .field("collar reference price", &((self.collar_reference_price as f64) * K_MULT))
             .field("lower auction collar", &((self.lower_auction_collar as f64) * K_MULT))
@@ -239,7 +239,6 @@ pub enum LULDTier {
 // Retail Indicator Message
 // TOPS broadcasts this message each time there is an update to IEX
 // eligible liquidity interest during the trading day
-
 #[derive(Deserialize, Serialize)]
 pub struct RetailLiquidityIndicatorMessage
 {
