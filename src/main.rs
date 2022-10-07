@@ -9,6 +9,8 @@ use std::fs::File;
 
 use clap::{command, Arg, ArgAction};
 
+const FRAME_HEADER_LENGTH : usize = 42;
+
 fn main()
 {
     env::set_var("RUST_BACKTRACE", "1");
@@ -24,11 +26,14 @@ fn main()
 
     let default_path = &"./test/20180127_IEXTP1_TOPS1.6.pcap".to_string();
     let path = matches.get_one::<String>("file").unwrap_or(default_path);
-    println!("path : {0}", path);
-    // let path = "/Users/coding/Downloads/data_feeds_20170912_20170912_IEXTP1_TOPS1.6.pcap";
-    let file = File::open(default_path).unwrap();
+    let result_file = File::open(path);
+    if result_file.is_err()
+    {
+        println!("Cannot open the selected file: check the file path.");
+        return;
+    }
     let mut num_blocks = 0;
-    let mut reader = PcapNGReader::new(65536, file).expect("PcapNGReader");
+    let mut reader = PcapNGReader::new(65536, result_file.unwrap()).expect("PcapNGReader");
     let mut if_linktypes = Vec::new();
     let packet_processor = IEXPacketProcessor{};
     loop {
@@ -50,9 +55,9 @@ fn main()
                     PcapBlockOwned::NG(Block::EnhancedPacket(ref epb)) => {
                         assert!((epb.if_id as usize) < if_linktypes.len());
                         let linktype = if_linktypes[epb.if_id as usize];
-                        println!("=====> block data");
+                        println!("=====> block data : epb.caplen {0}", epb.caplen);
                         let res = pcap_parser::data::get_packetdata(epb.data, linktype, epb.caplen as usize);
-                        packet_processor.process_packet_data(res);
+                        packet_processor.process_packet_data(res, FRAME_HEADER_LENGTH);
                     },
                     PcapBlockOwned::NG(Block::SimplePacket(ref spb)) => {
                         assert!(if_linktypes.len() > 0);
@@ -91,9 +96,5 @@ fn main()
 
     }
     println!("num_blocks: {}", num_blocks);
-}
-
-fn process_packet(res: &Option<PacketData>) {
-
 }
 

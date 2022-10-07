@@ -14,14 +14,13 @@ where
 }
 
 pub trait PacketProcessor {
-    fn process_packet_data(&self, data: Option<PacketData>);
+    fn process_packet_data(&self, data: Option<PacketData>, frame_header_length : usize);
 }
 
 pub struct IEXPacketProcessor {}
 
 impl PacketProcessor for IEXPacketProcessor {
-    fn process_packet_data(&self, data: Option<PacketData>) {
-        let frame_header_length = 42;
+    fn process_packet_data(&self, data: Option<PacketData>, frame_header_length : usize) {
         let packet = data.expect("Impossible to process packet");
 
         match packet {
