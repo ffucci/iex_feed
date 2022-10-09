@@ -10,10 +10,10 @@ use std::str;
 
 const K_MULT: f64 = 1e-4;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct IEXHeader {
     pub version: u8,
-    __reserved: u8,
+    pub(crate) __reserved: u8,
     pub protocol_id: u16,
     pub channel_id: u32,
     pub session_id: u32,
@@ -66,10 +66,10 @@ pub enum AuctionType
 #[repr(u8)]
 pub enum ImbalanceSide
 {
-    BUY = 0x42,
-    SELL = 0x53,
-    NO = 0x4E,
-    UNKNOWN,
+    Buy = 0x42,
+    Sell = 0x53,
+    No = 0x4E,
+    Unknown,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -192,10 +192,22 @@ pub struct ShortSalePriceTestStatus {
     pub detail: u8,
 }
 
-#[derive(Deserialize)]
+///////////// Trading Status ///////////////
+#[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
+#[repr(u8)]
+pub enum TradingStatus
+{
+    Halt = 0x48,
+    Acceptance = 0x4f,
+    Paused = 0x50,
+    Trading = 0x54,
+    Unknown
+}
+
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct TradingStatusMessage {
-    __t: u8,
-    pub trading_status: u8,
+    pub(crate) __t: u8,
+    pub trading_status: TradingStatus,
     #[serde(with = "ts_nanoseconds")]
     pub timestamp: DateTime<Utc>,
     pub symbol: [u8; 8],
@@ -266,8 +278,8 @@ impl fmt::Debug for RetailLiquidityIndicatorMessage {
 pub enum RetailLiquidityIndicator
 {
     SPACE = 0x20,
-    BUY_INTEREST = 0x41,
-    SELL_INTEREST = 0x42,
-    BUY_SELL_INTEREST = 0x43,
+    BuyInterest = 0x41,
+    SellInterest = 0x42,
+    BuySellInterest = 0x43,
     UNKNOWN,
 }
