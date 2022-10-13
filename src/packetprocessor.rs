@@ -171,6 +171,8 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
+    const header_length : usize = 40;
+
     #[test]
     fn test_can_read_trading_status() {
         let packet_processor: IEXPacketProcessor = IEXPacketProcessor {};
@@ -196,7 +198,7 @@ mod tests {
         ];
 
         let res: Vec<u8> = [by.unwrap(), raw_packet].concat();
-        assert_eq!(res.len(), 24 + 40);
+        assert_eq!(res.len(), test_header.payload_length as usize + header_length);
         let expected_packet = packet_processor.process_packet_data(Some(PacketData::L2(&res)), 0);
         let expected_message = TradingStatusMessage {
             trading_status: TradingStatus::Halt,
@@ -224,9 +226,10 @@ mod tests {
             first_message_seq_number: 37965,
             send_time: Utc::now(),
         };
+
         let header_bytes = bincode::serialize(&test_header);
         assert_eq!(header_bytes.is_ok(), true);
-        assert_eq!(header_bytes.as_ref().unwrap().len(), 40);
+        assert_eq!(header_bytes.as_ref().unwrap().len(), header_length);
 
         let raw_packet: Vec<u8> = vec![
             0x2A, 0x00, 0x51, 0x00, 0xac, 0x63, 0xc0, 0x20, 0x96, 0x86, 0x6d, 0x14, 0x5a, 0x49,
@@ -236,7 +239,7 @@ mod tests {
         ];
 
         let res: Vec<u8> = [header_bytes.unwrap(), raw_packet].concat();
-        assert_eq!(res.len(), test_header.payload_length as usize + 40);
+        assert_eq!(res.len(), test_header.payload_length as usize + header_length);
         let expected_packet = packet_processor.process_packet_data(Some(PacketData::L2(&res)), 0);
         let expected_message = QuoteUpdateMessage::from(0x00, DateTime::<Utc>::from_str("2016-08-23T19:30:32.572715948Z").unwrap(), [0x5a, 0x49, 0x45, 0x58, 0x54, 0x20, 0x20, 0x20], 9700, 99.05000000000001, 99.07000000000001, 1000);
         let computed_message = expected_packet.payload[0].downcast_ref::<QuoteUpdateMessage>();
