@@ -217,14 +217,26 @@ impl fmt::Debug for QuoteUpdateMessage {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct ShortSalePriceTestStatus {
-    t: u8,
+    __t: u8,
     pub price_status: u8,
     #[serde(with = "ts_nanoseconds")]
     pub timestamp: DateTime<Utc>,
     pub symbol: [u8; 8],
     pub detail: u8,
+}
+
+impl ShortSalePriceTestStatus
+{
+    pub fn from(price_status : u8, timestamp : DateTime<Utc>, symbol : [u8;8], detail : u8) -> ShortSalePriceTestStatus
+    {
+        ShortSalePriceTestStatus { __t: IEXMessageType::ShortSalePriceTestStatus as u8, 
+                                   price_status: price_status, 
+                                   timestamp: timestamp, 
+                                   symbol: symbol, 
+                                   detail: detail }
+    }
 }
 
 ///////////// Trading Status ///////////////

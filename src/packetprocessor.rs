@@ -245,4 +245,41 @@ mod tests {
         let computed_message = expected_packet.payload[0].downcast_ref::<QuoteUpdateMessage>();
         assert_eq!(&expected_message, computed_message.unwrap());
     }
+
+    #[test]
+    fn test_can_read_short_sale_price_test_status_message() {
+        let packet_processor: IEXPacketProcessor = IEXPacketProcessor {};
+        let test_header = IEXHeader {
+            version: 1,
+            __reserved: 0,
+            protocol_id: 32771,
+            channel_id: 1,
+            session_id: 1150681088,
+            payload_length: 19 + 2, // Size of message plus 2
+            message_count: 1,
+            stream_offset: 1140157,
+            first_message_seq_number: 37965,
+            send_time: Utc::now(),
+        };
+
+        let header_bytes = bincode::serialize(&test_header);
+        assert_eq!(header_bytes.is_ok(), true);
+        assert_eq!(header_bytes.as_ref().unwrap().len(), header_length);
+
+        let raw_packet: Vec<u8> = vec![
+            0x13, 0x00, 0x50, 0x01, 
+            0xac, 0x63, 0xc0, 0x20, 0x96, 0x86, 0x6d, 0x14, 
+            0x5a, 0x49, 0x45, 0x58, 0x54, 0x20, 0x20, 0x20, 
+            0x41
+        ];
+
+        let res: Vec<u8> = [header_bytes.unwrap(), raw_packet].concat();
+        assert_eq!(res.len(), test_header.payload_length as usize + header_length);
+        let expected_packet = packet_processor.process_packet_data(Some(PacketData::L2(&res)), 0);
+        let expected_message = ShortSalePriceTestStatus::from(0x1, DateTime::<Utc>::from_str("2016-08-23T19:30:32.572715948Z").unwrap(), [0x5a, 0x49, 0x45, 0x58, 0x54, 0x20, 0x20, 0x20], 0x41);
+        let computed_message = expected_packet.payload[0].downcast_ref::<ShortSalePriceTestStatus>();
+        assert_eq!(&expected_message, computed_message.unwrap());
+    }
+
+
 }
