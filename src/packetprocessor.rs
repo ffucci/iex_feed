@@ -276,7 +276,7 @@ mod tests {
         let res: Vec<u8> = [header_bytes.unwrap(), raw_packet].concat();
         assert_eq!(res.len(), test_header.payload_length as usize + header_length);
         let expected_packet = packet_processor.process_packet_data(Some(PacketData::L2(&res)), 0);
-        let expected_message = ShortSalePriceTestStatus::from(0x1, DateTime::<Utc>::from_str("2016-08-23T19:30:32.572715948Z").unwrap(), [0x5a, 0x49, 0x45, 0x58, 0x54, 0x20, 0x20, 0x20], 0x41);
+        let expected_message = ShortSalePriceTestStatus::from(PriceStatus::InEffect, DateTime::<Utc>::from_str("2016-08-23T19:30:32.572715948Z").unwrap(), [0x5a, 0x49, 0x45, 0x58, 0x54, 0x20, 0x20, 0x20], 0x41);
         let computed_message = expected_packet.payload[0].downcast_ref::<ShortSalePriceTestStatus>();
         assert_eq!(&expected_message, computed_message.unwrap());
     }

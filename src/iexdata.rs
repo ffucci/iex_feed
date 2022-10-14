@@ -216,11 +216,18 @@ impl fmt::Debug for QuoteUpdateMessage {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
+#[repr(u8)]
+pub enum PriceStatus {
+    NotInEffect = 0x0,
+    InEffect = 0x1,
+    Unknown,
+}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct ShortSalePriceTestStatus {
     __t: u8,
-    pub price_status: u8,
+    pub price_status: PriceStatus,
     #[serde(with = "ts_nanoseconds")]
     pub timestamp: DateTime<Utc>,
     pub symbol: [u8; 8],
@@ -229,7 +236,7 @@ pub struct ShortSalePriceTestStatus {
 
 impl ShortSalePriceTestStatus
 {
-    pub fn from(price_status : u8, timestamp : DateTime<Utc>, symbol : [u8;8], detail : u8) -> ShortSalePriceTestStatus
+    pub fn from(price_status : PriceStatus, timestamp : DateTime<Utc>, symbol : [u8;8], detail : u8) -> ShortSalePriceTestStatus
     {
         ShortSalePriceTestStatus { __t: IEXMessageType::ShortSalePriceTestStatus as u8, 
                                    price_status: price_status, 
@@ -274,6 +281,10 @@ impl fmt::Debug for TradingStatusMessage {
     }
 }
 
+/////////////////////////////////////////////// 
+/////////// SECURITY DIRECTORY MESSAGE ////////
+/////////////////////////////////////////////// 
+
 #[derive(Debug, Deserialize)]
 pub struct SecurityDirectoryMessage {
     __t: u8,
@@ -294,6 +305,7 @@ pub enum LULDTier {
     Tier2NMS = 0x2,
 }
 
+/////////////////////////////////////////////// 
 // Retail Indicator Message
 // TOPS broadcasts this message each time there is an update to IEX
 // eligible liquidity interest during the trading day
