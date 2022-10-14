@@ -7,13 +7,14 @@ use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::fmt;
 use std::str;
+use time::serde::timestamp;
 
 const K_MULT: f64 = 1e-4;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct IEXHeader {
     pub version: u8,
-    __reserved: u8,
+    pub(crate) __reserved: u8,
     pub protocol_id: u16,
     pub channel_id: u32,
     pub session_id: u32,
@@ -49,12 +50,10 @@ pub enum IEXMessageType {
     Nothing,
 }
 
-
 // AUCTION MESSAGES
 #[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
 #[repr(u8)]
-pub enum AuctionType
-{
+pub enum AuctionType {
     OPENING = 0x4F,
     CLOSING = 0x43,
     IPO = 0x49,
@@ -62,35 +61,33 @@ pub enum AuctionType
     VOLATILITY = 0x56,
 }
 
-#[derive(Deserialize_repr, Serialize_repr ,Debug, PartialEq)]
+#[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
 #[repr(u8)]
-pub enum ImbalanceSide
-{
-    BUY = 0x42,
-    SELL = 0x53,
-    NO = 0x4E,
-    UNKNOWN,
+pub enum ImbalanceSide {
+    Buy = 0x42,
+    Sell = 0x53,
+    No = 0x4E,
+    Unknown,
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct AuctionInformationMessage
-{
-    __t : u8,
-    pub auction_type : AuctionType,
+pub struct AuctionInformationMessage {
+    __t: u8,
+    pub auction_type: AuctionType,
     #[serde(with = "ts_nanoseconds")]
     pub send_time: DateTime<Utc>,
     pub symbol: [u8; 8],
-    pub paired_shares : u32,
-    pub reference_price : i64,
-    pub indicative_price : i64,
-    pub imbalance_shares : u32,
-    pub imbalance_side : ImbalanceSide,
-    pub extension_number : u8,
+    pub paired_shares: u32,
+    pub reference_price: i64,
+    pub indicative_price: i64,
+    pub imbalance_shares: u32,
+    pub imbalance_side: ImbalanceSide,
+    pub extension_number: u8,
     pub scheduled_auction_time: u32,
-    pub auction_book_clearing_price : i64,
-    pub collar_reference_price : i64,
-    pub lower_auction_collar : i64,
-    pub upper_auction_collar : i64,
+    pub auction_book_clearing_price: i64,
+    pub collar_reference_price: i64,
+    pub lower_auction_collar: i64,
+    pub upper_auction_collar: i64,
 }
 
 impl fmt::Debug for AuctionInformationMessage {
@@ -106,15 +103,30 @@ impl fmt::Debug for AuctionInformationMessage {
             .field("symbol", &symbol.trim())
             .field("paired shares", &self.paired_shares)
             .field("reference price", &((self.reference_price as f64) * K_MULT))
-            .field("indicative price", &((self.indicative_price as f64) * K_MULT))
+            .field(
+                "indicative price",
+                &((self.indicative_price as f64) * K_MULT),
+            )
             .field("imbalance shares", &self.imbalance_shares)
             .field("imbalance side", &self.imbalance_side)
             .field("extension_number", &self.extension_number)
             .field("scheduled auction time", &naive_datetime)
-            .field("auction book clearing price", &((self.auction_book_clearing_price as f64) * K_MULT))
-            .field("collar reference price", &((self.collar_reference_price as f64) * K_MULT))
-            .field("lower auction collar", &((self.lower_auction_collar as f64) * K_MULT))
-            .field("upper auction collar", &((self.upper_auction_collar as f64) * K_MULT))
+            .field(
+                "auction book clearing price",
+                &((self.auction_book_clearing_price as f64) * K_MULT),
+            )
+            .field(
+                "collar reference price",
+                &((self.collar_reference_price as f64) * K_MULT),
+            )
+            .field(
+                "lower auction collar",
+                &((self.lower_auction_collar as f64) * K_MULT),
+            )
+            .field(
+                "upper auction collar",
+                &((self.upper_auction_collar as f64) * K_MULT),
+            )
             .finish()
     }
 }
@@ -123,7 +135,7 @@ impl fmt::Debug for AuctionInformationMessage {
 
 #[derive(Deserialize)]
 pub struct TradeReportMessage {
-    __type : u8,
+    __type: u8,
     pub sale_condition_flags: u8,
     #[serde(with = "ts_nanoseconds")]
     pub timestamp: DateTime<Utc>,
@@ -151,7 +163,7 @@ impl fmt::Debug for TradeReportMessage {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Quote message update
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, PartialEq)]
 pub struct QuoteUpdateMessage {
     t: u8,
     pub flags: u8,
@@ -162,6 +174,29 @@ pub struct QuoteUpdateMessage {
     pub bid_price: i64,
     pub ask_price: i64,
     pub ask_size: u32,
+}
+
+impl QuoteUpdateMessage {
+    pub fn from(
+        flags : u8,
+        timestamp: DateTime<Utc>,
+        symbol: [u8; 8],
+        bid_size: u32,
+        bid_price: f32,
+        ask_price: f32,
+        ask_size: u32,
+    ) -> QuoteUpdateMessage {
+        QuoteUpdateMessage {
+            t: IEXMessageType::QuoteUpdateMessage as u8,
+            flags: flags,
+            timestamp: timestamp,
+            symbol: symbol,
+            bid_size: bid_size,
+            bid_price: (bid_price * 10000 as f32) as i64,
+            ask_price: (ask_price * 10000 as f32) as i64,
+            ask_size: ask_size,
+        }
+    }
 }
 
 impl fmt::Debug for QuoteUpdateMessage {
@@ -181,21 +216,51 @@ impl fmt::Debug for QuoteUpdateMessage {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
+#[repr(u8)]
+pub enum PriceStatus {
+    NotInEffect = 0x0,
+    InEffect = 0x1,
+    Unknown,
+}
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct ShortSalePriceTestStatus {
-    t: u8,
-    pub price_status: u8,
+    __t: u8,
+    pub price_status: PriceStatus,
     #[serde(with = "ts_nanoseconds")]
     pub timestamp: DateTime<Utc>,
     pub symbol: [u8; 8],
     pub detail: u8,
 }
 
-#[derive(Deserialize)]
+impl ShortSalePriceTestStatus
+{
+    pub fn from(price_status : PriceStatus, timestamp : DateTime<Utc>, symbol : [u8;8], detail : u8) -> ShortSalePriceTestStatus
+    {
+        ShortSalePriceTestStatus { __t: IEXMessageType::ShortSalePriceTestStatus as u8, 
+                                   price_status: price_status, 
+                                   timestamp: timestamp, 
+                                   symbol: symbol, 
+                                   detail: detail }
+    }
+}
+
+///////////// Trading Status ///////////////
+#[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
+#[repr(u8)]
+pub enum TradingStatus {
+    Halt = 0x48,
+    Acceptance = 0x4f,
+    Paused = 0x50,
+    Trading = 0x54,
+    Unknown,
+}
+
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct TradingStatusMessage {
-    __t: u8,
-    pub trading_status: u8,
+    pub(crate) __t: u8,
+    pub trading_status: TradingStatus,
     #[serde(with = "ts_nanoseconds")]
     pub timestamp: DateTime<Utc>,
     pub symbol: [u8; 8],
@@ -215,6 +280,10 @@ impl fmt::Debug for TradingStatusMessage {
             .finish()
     }
 }
+
+/////////////////////////////////////////////// 
+/////////// SECURITY DIRECTORY MESSAGE ////////
+/////////////////////////////////////////////// 
 
 #[derive(Debug, Deserialize)]
 pub struct SecurityDirectoryMessage {
@@ -236,12 +305,12 @@ pub enum LULDTier {
     Tier2NMS = 0x2,
 }
 
+/////////////////////////////////////////////// 
 // Retail Indicator Message
 // TOPS broadcasts this message each time there is an update to IEX
 // eligible liquidity interest during the trading day
 #[derive(Deserialize, Serialize)]
-pub struct RetailLiquidityIndicatorMessage
-{
+pub struct RetailLiquidityIndicatorMessage {
     __t: u8,
     pub retail_liquidity_indicator: RetailLiquidityIndicator,
     #[serde(with = "ts_nanoseconds")]
@@ -263,11 +332,10 @@ impl fmt::Debug for RetailLiquidityIndicatorMessage {
 
 #[derive(Deserialize_repr, Serialize_repr, Debug, PartialEq)]
 #[repr(u8)]
-pub enum RetailLiquidityIndicator
-{
+pub enum RetailLiquidityIndicator {
     SPACE = 0x20,
-    BUY_INTEREST = 0x41,
-    SELL_INTEREST = 0x42,
-    BUY_SELL_INTEREST = 0x43,
+    BuyInterest = 0x41,
+    SellInterest = 0x42,
+    BuySellInterest = 0x43,
     UNKNOWN,
 }
