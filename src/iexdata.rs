@@ -285,7 +285,7 @@ impl fmt::Debug for TradingStatusMessage {
 /////////// SECURITY DIRECTORY MESSAGE ////////
 /////////////////////////////////////////////// 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct SecurityDirectoryMessage {
     __t: u8,
     pub flags: u8,
@@ -303,6 +303,25 @@ pub enum LULDTier {
     NotApplicable = 0x0,
     Tier1NMS = 0x1,
     Tier2NMS = 0x2,
+}
+
+impl SecurityDirectoryMessage
+{
+    pub fn from(flags: u8, 
+                timestamp : DateTime<Utc>, 
+                symbol : [u8; 8], 
+                round_lot_size : u32, 
+                adjusted_poc_price: f32,
+                luld_tier : LULDTier) -> SecurityDirectoryMessage
+    {
+        SecurityDirectoryMessage{__t :IEXMessageType::SecurityDirectoryMessage as u8,
+                                 flags,
+                                 timestamp,
+                                 symbol,
+                                 round_lot_size,
+                                 adjusted_poc_price: ((adjusted_poc_price * 1e4f32) as i64),
+                                 luld_tier}
+    }
 }
 
 /////////////////////////////////////////////// 
